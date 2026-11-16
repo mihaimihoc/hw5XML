@@ -1,0 +1,474 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xf="http://www.w3.org/2002/xforms"
+      xmlns:ev="http://www.w3.org/2001/xml-events"
+      xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <head>
+        <title>Movie catalog (HW5 - XPath in XForms)</title>
+
+        <xf:model id="movies-model">
+
+            <!-- ===== THE XML DATABASE ===== -->
+            <xf:instance id="movies-instance" src="oxf:/apps/movies5/movies.xml" xmlns=""/>
+
+            <xf:instance id="ui">
+                <ui xmlns="">
+                    <director>Christopher Nolan</director>
+                    <genre>Sci-Fi</genre>
+                    <title>Inception</title>
+                    <n>3</n>
+                    <minrating>8.7</minrating>
+                    <maxruntime>150</maxruntime>
+                    <text>an</text>
+                    <roi>5</roi>
+                    <mingenres>3</mingenres>
+                    <!-- web service panel -->
+                    <apibase>http://localhost:8080/movies5api/api</apibase>
+                    <q>C5</q>
+                    <sort/><limit/><agg/>
+                    <url/>
+                    <status>Ready.</status>
+                </ui>
+            </xf:instance>
+
+            <!-- values of the parameters of the web service (one entry per parameter name of the catalog) -->
+            <xf:instance id="args">
+                <args xmlns="">
+                    <arg name="n"/><arg name="id"/><arg name="minrating"/><arg name="maxruntime"/>
+                    <arg name="text"/><arg name="roi"/><arg name="mingenres"/>
+                    <arg name="director"/><arg name="title"/><arg name="genre"/>
+                </args>
+            </xf:instance>
+
+            <!-- the catalog, loaded from the web service -->
+            <xf:instance id="catalog"><catalog xmlns=""/></xf:instance>
+            <!-- the answer of the web service -->
+            <xf:instance id="result"><result xmlns=""/></xf:instance>
+
+            <!-- ===== API Calls ===== -->
+
+            <!-- reload the database from the file -->
+            <xf:submission id="reload-data" method="get" serialization="none"
+                           resource="oxf:/apps/movies5/movies.xml"
+                           replace="instance" instance="movies-instance">
+                <xf:setvalue ev:event="xforms-submit-done" ref="instance('ui')/status"
+                             value="'OK: the data was reloaded from movies.xml.'"/>
+                <xf:setvalue ev:event="xforms-submit-error" ref="instance('ui')/status"
+                             value="concat('RELOAD FAILED: ', event('error-type'))"/>
+            </xf:submission>
+
+            <!-- ask the web service for the list of operations -->
+            <xf:submission id="load-catalog" method="get" serialization="none"
+                        replace="instance" instance="catalog" 
+                        resource="{instance('ui')/apibase}">
+                <xf:setvalue ev:event="xforms-submit-done" ref="instance('ui')/status"
+                            value="concat('OK: ', count(instance('catalog')/query), ' operations loaded from the web service.')"/>
+                <xf:setvalue ev:event="xforms-submit-error" ref="instance('ui')/status"
+                            value="concat('The web service is not reachable (', event('error-type'), ', HTTP ', event('response-status-code'), '). Is movies5api deployed and the URL correct?')"/>
+            </xf:submission>
+
+            <!-- run the selected operation: the URL built from the chosen query + its parameters -->
+            <xf:submission id="run-query" method="get" serialization="none"
+                        replace="instance" instance="result" 
+                        resource="{instance('ui')/url}">
+                <xf:setvalue ev:event="xforms-submit-done" ref="instance('ui')/status"
+                            value="concat('OK: ', instance('result')/@query, ' returned ', instance('result')/@count, ' item(s).')"/>
+                <xf:setvalue ev:event="xforms-submit-error" ref="instance('ui')/status"
+                            value="concat('The web service answered with an error (HTTP ', event('response-status-code'), ') - check the parameters.')"/>
+            </xf:submission>
+
+            <!-- try to load the catalog as soon as the page is ready (an error is only shown in the status line) -->
+            <xf:send ev:event="xforms-ready" submission="load-catalog"/>
+
+            <!-- ===== small bindings for the input fields ===== -->
+            <xf:bind ref="instance('ui')/n" type="xs:integer"/>
+            <xf:bind ref="instance('ui')/minrating" type="xs:decimal"/>
+            <xf:bind ref="instance('ui')/maxruntime" type="xs:integer"/>
+            <xf:bind ref="instance('ui')/roi" type="xs:decimal"/>
+            <xf:bind ref="instance('ui')/mingenres" type="xs:integer"/>
+        </xf:model>
+    </head>
+
+    <body>
+<style type="text/css">
+body {
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    background-color: #eef1f6;
+    color: #1f2937;
+    line-height: 1.45;
+}
+h1 {
+    color: #1e3a5f;
+    margin: 20px 0 10px 0;
+}
+h2 {
+    color: #1e3a5f;
+    border-bottom: 3px solid #3b82f6;
+    padding-bottom: 6px;
+    margin-top: 0;
+}
+h3 { color: #1e3a5f; margin-bottom: 6px; }
+h4 {
+    color: #ffffff;
+    background-color: #5b7db1;
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin: 18px 0 8px 0;
+    font-size: 14px;
+}
+.card {
+    background-color: #ffffff;
+    border: 1px solid #d5dbe5;
+    border-radius: 8px;
+    padding: 12px 22px 18px 22px;
+    margin: 18px 0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.toolbar {
+    background-color: #1e3a5f;
+    color: #ffffff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.toolbar .counts { margin-right: 20px; font-weight: bold; }
+.toolbar button { margin-right: 6px; }
+.note { color: #6b7280; font-size: 90%; }
+span.xforms-trigger { margin-right: 6px; }
+span.xforms-trigger button.btn {
+    background-color: #3b82f6 !important;
+    background-image: none !important;
+    color: #ffffff !important;
+    border: 1px solid #2563eb !important;
+    border-radius: 5px;
+    padding: 5px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    text-shadow: none;
+    box-shadow: none;
+    cursor: pointer;
+}
+span.xforms-trigger button.btn:hover { background-color: #1d63d6 !important; }
+.toolbar span.xforms-trigger button.btn {
+    background-color: #ffffff !important;
+    color: #1e3a5f !important;
+    border-color: #ffffff !important;
+}
+.toolbar span.xforms-trigger button.btn:hover { background-color: #dbe7ff !important; }
+span.xforms-trigger.edit button.btn {
+    background-color: #ffffff !important;
+    color: #2563eb !important;
+    border: 1px solid #3b82f6 !important;
+    padding: 1px 10px;
+    font-size: 12px;
+}
+span.xforms-trigger.edit button.btn:hover { background-color: #eef4ff !important; }
+span.xforms-trigger.add button.btn { background-color: #16a34a !important; border-color: #15803d !important; }
+span.xforms-trigger.add button.btn:hover { background-color: #12853d !important; }
+span.xforms-trigger.danger button.btn { background-color: #dc2626 !important; border-color: #b91c1c !important; }
+span.xforms-trigger.danger button.btn:hover { background-color: #b91c1c !important; }
+input[type="text"], textarea, select {
+    border: 1px solid #b8c0cc;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 14px;
+}
+textarea { width: 420px; height: 70px; }
+input[type="text"]:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 3px #3b82f6;
+}
+.xforms-label {
+    display: inline-block;
+    min-width: 150px;
+    font-weight: 600;
+}
+.xforms-hint, .xforms-help { color: #6b7280; font-size: 85%; }
+.xforms-readonly input, .xforms-readonly textarea {
+    background-color: #eceff3;
+    color: #555555;
+    border-style: dashed;
+}
+.xforms-invalid-visited input, .xforms-invalid-visited textarea,
+.xforms-invalid-visited select {
+    border: 2px solid #dc2626;
+    background-color: #fef2f2;
+}
+.xforms-alert { color: #b91c1c; font-size: 85%; }
+.xforms-required .xforms-label:after { content: " *"; color: #dc2626; }
+.xforms-repeat-selected-item-1, .xforms-repeat-selected-item-2 { background-color: #eef4ff; }
+hr { border: none; border-top: 1px solid #d5dbe5; }
+.status { background-color: #fff8db; border: 1px solid #f0d36b; border-radius: 5px; padding: 6px 12px; min-height: 18px; }
+        
+.tag { display: inline-block; background-color: #1e3a5f; color: #fff; border-radius: 4px; padding: 0 7px;
+       font-size: 12px; font-weight: bold; margin-right: 8px; min-width: 24px; text-align: center; }
+.tag.s { background-color: #0f766e; } .tag.m { background-color: #b45309; } .tag.c { background-color: #7c3aed; }
+code.xp { display: block; background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px;
+          padding: 4px 8px; margin: 3px 0 8px 0; font-size: 12px; color: #374151; word-break: break-all; }
+.row { margin: 6px 0; }
+.result-box { background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 5px; padding: 4px 10px; display: inline-block; }
+.xforms-label { min-width: 120px; }
+table.items { border-collapse: collapse; margin: 6px 0; }
+table.items td, table.items th { border: 1px solid #d5dbe5; padding: 3px 10px; text-align: left; font-size: 13px; }
+</style>
+        <h1>Movie catalog - XPath expressions in XForms</h1>
+        <p class="note">
+            Every box below uses an expression of homework 5
+            (<span class="tag s">S</span> simple, <span class="tag m">M</span> medium, <span class="tag c">C</span> complex).
+            The <code>$variables</code> of the expressions are bound with <code>xf:var</code> to the fields you edit,
+            so the results change while you type. The last card calls the web service (Part B).
+        </p>
+
+        <div class="toolbar">
+            <xf:trigger>
+                <xf:label>Reload data from movies.xml</xf:label>
+                <xf:send ev:event="DOMActivate" submission="reload-data"/>
+            </xf:trigger>
+        </div>
+        <p class="status"><xf:output ref="instance('ui')/status"><xf:label>Status: </xf:label></xf:output></p>
+
+        <div class="card">
+            <h2>1. The database in numbers</h2>
+            <div class="row"><span class="tag s">S10</span>
+                <xf:output value="concat(name(/*), ': ', count(/moviedb/movies/movie), ' movies, ', count(/moviedb/people/person), ' people, ', count(/moviedb/genres/genre), ' genres')"/>
+            </div>
+            <code class="xp">concat(name(/*), ': ', count(/moviedb/movies/movie), ' movies, ', count(/moviedb/people/person), ' people, ', count(/moviedb/genres/genre), ' genres')</code>
+            <div class="row"><span class="tag s">S11</span> Total box office ($):
+                <xf:output value="xs:integer(sum(/moviedb/movies/movie/boxoffice))"/>
+            </div>
+            <code class="xp">sum(/moviedb/movies/movie/boxoffice)</code>
+            <div class="row"><span class="tag s">S2</span> All people:
+                <xf:output value="string-join(//person/name, ', ')"/>
+            </div>
+            <code class="xp">//person/name</code>
+        </div>
+
+        <div class="card">
+            <h2>2. Movies of a director in a genre</h2>
+            <xf:group>
+                <xf:var name="director" value="string(instance('ui')/director)"/>
+                <xf:var name="genre" value="string(instance('ui')/genre)"/>
+                <!-- the expression C5, without the final /title: we want the movie elements -->
+                <xf:var name="found" value="/moviedb/movies/movie[@directorid = /moviedb/people/person[name = $director]/@id and contains(concat(' ', @genreids, ' '), concat(' ', /moviedb/genres/genre[name = $genre]/@id, ' '))]"/>
+
+                <p>
+                    <xf:select1 ref="instance('ui')/director">
+                        <xf:label>Director: </xf:label>
+                        <xf:itemset ref="instance('movies-instance')/people/person[@id = instance('movies-instance')/movies/movie/@directorid]">
+                            <xf:label ref="name"/>
+                            <xf:value ref="name"/>
+                        </xf:itemset>
+                    </xf:select1>
+                    <xf:select1 ref="instance('ui')/genre">
+                        <xf:label>  Genre: </xf:label>
+                        <xf:itemset ref="instance('movies-instance')/genres/genre">
+                            <xf:label ref="name"/>
+                            <xf:value ref="name"/>
+                        </xf:itemset>
+                    </xf:select1>
+                </p>
+                <p><span class="tag c">C5</span> The director list is also an expression: people whose id is used as a @directorid.</p>
+                <code class="xp">/moviedb/movies/movie[@directorid = /moviedb/people/person[name = $director]/@id and contains(concat(' ', @genreids, ' '), concat(' ', /moviedb/genres/genre[name = $genre]/@id, ' '))]</code>
+
+                <p><b><xf:output value="count($found)"/> movie(s) found</b></p>
+                <xf:repeat ref="$found">
+                    <div class="row">
+                        <!-- the cast: expression C3, with the IDREFS of THIS movie -->
+                        <xf:var name="actors" value="string(@actorids)"/>
+                        <xf:output ref="title"/> (<xf:output ref="year"/>) - cast:
+                        <xf:output value="string-join(/moviedb/people/person[contains(concat(' ', $actors, ' '), concat(' ', @id, ' '))]/name, ', ')"/>
+                    </div>
+                </xf:repeat>
+            </xf:group>
+        </div>
+
+        <div class="card">
+            <h2>3. Details of one movie (joins over the ID / IDREF links)</h2>
+            <xf:group>
+                <xf:var name="title" value="string(instance('ui')/title)"/>
+                <p>
+                    <xf:select1 ref="instance('ui')/title">
+                        <xf:label>Movie: </xf:label>
+                        <xf:itemset ref="instance('movies-instance')/movies/movie">
+                            <xf:label ref="title"/>
+                            <xf:value ref="title"/>
+                        </xf:itemset>
+                    </xf:select1>
+                </p>
+                <div class="row"><span class="tag c">C2</span> Director:
+                    <b><xf:output value="string-join(/moviedb/people/person[@id = /moviedb/movies/movie[title = $title]/@directorid]/name, ', ')"/></b></div>
+                <code class="xp">/moviedb/people/person[@id = /moviedb/movies/movie[title = $title]/@directorid]/name</code>
+
+                <div class="row"><span class="tag c">C3</span> Cast:
+                    <b><xf:output value="string-join(/moviedb/people/person[contains(concat(' ', /moviedb/movies/movie[title = $title]/@actorids, ' '), concat(' ', @id, ' '))]/name, ', ')"/></b></div>
+                <code class="xp">/moviedb/people/person[contains(concat(' ', /moviedb/movies/movie[title = $title]/@actorids, ' '), concat(' ', @id, ' '))]/name</code>
+
+                <div class="row"><span class="tag c">C4'</span> Genres (C4 read in the other direction):
+                    <b><xf:output value="string-join(/moviedb/genres/genre[contains(concat(' ', /moviedb/movies/movie[title = $title]/@genreids, ' '), concat(' ', @id, ' '))]/name, ', ')"/></b></div>
+                <code class="xp">/moviedb/genres/genre[contains(concat(' ', /moviedb/movies/movie[title = $title]/@genreids, ' '), concat(' ', @id, ' '))]/name</code>
+
+                <div class="row"><span class="tag m">M2</span> The movie element itself, by id: id =
+                    <xf:output value="string-join(/moviedb/movies/movie[title = $title]/@id, '')"/>,
+                    rating <xf:output value="string-join(/moviedb/movies/movie[title = $title]/rating, '')"/>,
+                    runtime <xf:output value="string-join(/moviedb/movies/movie[title = $title]/runtime, '')"/> min</div>
+            </xf:group>
+        </div>
+
+        <div class="card">
+            <h2>4. Filters (medium expressions)</h2>
+            <xf:group>
+                <xf:var name="n" value="if (instance('ui')/n castable as xs:integer) then xs:integer(instance('ui')/n) else 0"/>
+                <xf:var name="minrating" value="if (instance('ui')/minrating castable as xs:decimal) then xs:decimal(instance('ui')/minrating) else 0"/>
+                <xf:var name="maxruntime" value="if (instance('ui')/maxruntime castable as xs:integer) then xs:integer(instance('ui')/maxruntime) else 100000"/>
+                <xf:var name="roi" value="if (instance('ui')/roi castable as xs:decimal) then xs:decimal(instance('ui')/roi) else 0"/>
+                <xf:var name="mingenres" value="if (instance('ui')/mingenres castable as xs:integer) then xs:integer(instance('ui')/mingenres) else 0"/>
+                <xf:var name="text" value="string(instance('ui')/text)"/>
+
+                <div class="row"><span class="tag m">M1</span>
+                    <xf:input ref="instance('ui')/n"><xf:label>The n-th movie, n = </xf:label>
+                        <xf:alert>Enter a whole number</xf:alert></xf:input>
+                    &#8594; <b><xf:output value="string-join(/moviedb/movies/movie[$n]/title, '')"/></b></div>
+                <code class="xp">/moviedb/movies/movie[$n]/title</code>
+
+                <div class="row"><span class="tag m">M3</span> Rating at least
+                    <xf:input ref="instance('ui')/minrating"><xf:label/><xf:alert>A number, for example 8.7</xf:alert></xf:input>
+                    and runtime at most
+                    <xf:input ref="instance('ui')/maxruntime"><xf:label/><xf:alert>A whole number of minutes</xf:alert></xf:input>
+                    &#8594; <b><xf:output value="string-join(/moviedb/movies/movie[rating >= $minrating and runtime &lt;= $maxruntime]/title, ', ')"/></b></div>
+                <code class="xp">/moviedb/movies/movie[rating &gt;= $minrating and runtime &lt;= $maxruntime]/title</code>
+
+                <div class="row"><span class="tag m">M4</span> Name contains (any case)
+                    <xf:input ref="instance('ui')/text"><xf:label/></xf:input>
+                    &#8594; <b><xf:output value="string-join(/moviedb/people/person[contains(translate(name, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), translate($text, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'))]/name, ', ')"/></b></div>
+                <code class="xp">/moviedb/people/person[contains(translate(name, 'ABC...Z', 'abc...z'), translate($text, 'ABC...Z', 'abc...z'))]/name</code>
+
+                <div class="row"><span class="tag m">M5</span> Profit / budget more than
+                    <xf:input ref="instance('ui')/roi"><xf:label/><xf:alert>A number, for example 5 (= 500%)</xf:alert></xf:input>
+                    &#8594; <b><xf:output value="string-join(/moviedb/movies/movie[(boxoffice - budget) div budget &gt; $roi]/title, ', ')"/></b></div>
+                <code class="xp">/moviedb/movies/movie[(boxoffice - budget) div budget &gt; $roi]/title</code>
+
+                <div class="row"><span class="tag m">M6</span> At least
+                    <xf:input ref="instance('ui')/mingenres"><xf:label/><xf:alert>A whole number</xf:alert></xf:input>
+                    genres &#8594; <b><xf:output value="string-join(/child::moviedb/child::movies/child::movie[string-length(normalize-space(@genreids)) - string-length(translate(normalize-space(@genreids), ' ', '')) + 1 &gt;= $mingenres]/child::title, ', ')"/></b></div>
+                <code class="xp">/child::moviedb/child::movies/child::movie[string-length(normalize-space(@genreids)) - string-length(translate(normalize-space(@genreids), ' ', '')) + 1 &gt;= $mingenres]/child::title</code>
+            </xf:group>
+        </div>
+
+        <div class="card">
+            <h2>5. Directors and their movies</h2>
+            <xf:repeat ref="/moviedb/people/person[@id = /moviedb/movies/movie/@directorid]">
+                <xf:var name="director" value="string(name)"/>
+                <div class="row">
+                    <span class="tag c">C1</span> <b><xf:output ref="name"/></b>:
+                    <xf:output value="string-join(/moviedb/movies/movie[@directorid = /moviedb/people/person[name = $director]/@id]/title, ', ')"/>
+                </div>
+            </xf:repeat>
+            <code class="xp">/moviedb/movies/movie[@directorid = /moviedb/people/person[name = $director]/@id]/title</code>
+
+            <div class="row"><span class="tag c">C6</span> Movies whose director made another movie too:
+                <b><xf:output value="string-join(/moviedb/movies/movie[@directorid = preceding-sibling::movie/@directorid or @directorid = following-sibling::movie/@directorid]/title, ', ')"/></b></div>
+            <code class="xp">/moviedb/movies/movie[@directorid = preceding-sibling::movie/@directorid or @directorid = following-sibling::movie/@directorid]/title</code>
+        </div>
+
+        <div class="card">
+            <h2>6. The web service (Part B) called from XForms</h2>
+            <p class="note">
+                The operations below come from the Java service (<code>xf:submission</code> with method get).
+                The answer is an XML message that is loaded into an instance and shown here.
+            </p>
+            <p>
+                <xf:input ref="instance('ui')/apibase">
+                    <xf:label>Service URL: </xf:label>
+                </xf:input>
+                <xf:trigger class="edit">
+                    <xf:label>Load operations</xf:label>
+                    <xf:send ev:event="DOMActivate" submission="load-catalog"/>
+                </xf:trigger>
+            </p>
+
+            <xf:group ref="instance('catalog')/query[1]">
+                <p>
+                    <xf:select1 ref="instance('ui')/q">
+                        <xf:label>Operation: </xf:label>
+                        <xf:itemset ref="instance('catalog')/query">
+                            <xf:label value="concat(@id, ' (', @tier, ') - ', title)"/>
+                            <xf:value ref="@id"/>
+                        </xf:itemset>
+                    </xf:select1>
+                </p>
+                <code class="xp"><xf:output value="instance('catalog')/query[@id = instance('ui')/q]/xpath"/></code>
+
+                <!-- one input for every parameter of the chosen operation -->
+                <xf:repeat ref="instance('catalog')/query[@id = instance('ui')/q]/params/param">
+                    <xf:var name="pn" value="string(@name)"/>
+                    <div class="row">
+                        <xf:input ref="instance('args')/arg[@name = $pn]">
+                            <xf:label value="$pn"/>
+                        </xf:input>
+                        <span class="note"><xf:output value="concat('  default: ', @default, ' - ', .)"/></span>
+                    </div>
+                </xf:repeat>
+
+                <h4>Operations over the result</h4>
+                <p>
+                    <xf:select1 ref="instance('ui')/sort">
+                        <xf:label>Sort: </xf:label>
+                        <xf:item><xf:label>(none)</xf:label><xf:value></xf:value></xf:item>
+                        <xf:item><xf:label>ascending</xf:label><xf:value>asc</xf:value></xf:item>
+                        <xf:item><xf:label>descending</xf:label><xf:value>desc</xf:value></xf:item>
+                    </xf:select1>
+                    <xf:input ref="instance('ui')/limit"><xf:label>  Limit: </xf:label></xf:input>
+                    <xf:select1 ref="instance('ui')/agg">
+                        <xf:label>  Aggregate: </xf:label>
+                        <xf:item><xf:label>(none)</xf:label><xf:value></xf:value></xf:item>
+                        <xf:item><xf:label>count</xf:label><xf:value>count</xf:value></xf:item>
+                        <xf:item><xf:label>sum</xf:label><xf:value>sum</xf:value></xf:item>
+                        <xf:item><xf:label>avg</xf:label><xf:value>avg</xf:value></xf:item>
+                        <xf:item><xf:label>min</xf:label><xf:value>min</xf:value></xf:item>
+                        <xf:item><xf:label>max</xf:label><xf:value>max</xf:value></xf:item>
+                        <xf:item><xf:label>distinct</xf:label><xf:value>distinct</xf:value></xf:item>
+                    </xf:select1>
+                </p>
+
+                <xf:trigger class="add">
+                    <xf:label>Run</xf:label>
+                    <xf:action ev:event="DOMActivate">
+                        <!-- build the URL: ?q=ID&amp;param=value...&amp;sort=..&amp;limit=..&amp;agg=..  (values are URL-encoded) -->
+                        <xf:setvalue ref="instance('ui')/url"
+                            value="concat(instance('ui')/apibase, '?q=', instance('ui')/q,
+                                   string-join(for $p in instance('catalog')/query[@id = instance('ui')/q]/params/param
+                                               return concat('&amp;', $p/@name, '=', encode-for-uri(string(instance('args')/arg[@name = $p/@name]))), ''),
+                                   '&amp;sort=', instance('ui')/sort,
+                                   '&amp;limit=', encode-for-uri(string(instance('ui')/limit)),
+                                   '&amp;agg=', instance('ui')/agg,
+                                   '&amp;format=xml')"/>
+                        <xf:send submission="run-query"/>
+                    </xf:action>
+                </xf:trigger>
+                <p class="note">Request: <xf:output ref="instance('ui')/url"/> (add <code>format=json</code> in a browser to see the JSON message)</p>
+            </xf:group>
+
+            <xf:group ref="instance('result')[@query]">
+                <h4>Answer of the service</h4>
+                <p><span class="result-box">
+                    <xf:output value="concat(@query, ' - ', title, ' | type: ', @type, ' | count: ', @count)"/>
+                </span></p>
+                <xf:group ref=".[@type != 'nodeset']">
+                    <p>Value: <b><xf:output ref="value"/></b></p>
+                </xf:group>
+                <table class="items">
+                    <xf:repeat ref="instance('result')/items/item">
+                        <tr>
+                            <td><xf:output ref="@kind"/></td>
+                            <td><xf:output ref="@name"/></td>
+                            <td><xf:output value="if (*/title) then concat(*/title, if (*/@id) then concat(' (', */@id, ')') else '') else normalize-space(.)"/></td>
+                        </tr>
+                    </xf:repeat>
+                </table>
+                <xf:group ref="aggregate">
+                    <p>Aggregate <b><xf:output ref="@op"/></b> = <b><xf:output ref="."/></b></p>
+                </xf:group>
+            </xf:group>
+        </div>
+    </body>
+</html>

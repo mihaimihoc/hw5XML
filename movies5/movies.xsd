@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  XML Schema for movies.xml .
+  DESIGN RULES
+   - Every simple type, complex type and element is declared GLOBALLY (no anonymous
+     or embedded definitions). Complex types are built from references (ref="...").
+     This makes everything reusable.
+   - Links between the categories use ID / IDREF / IDREFS. Each id type has a pattern
+     with its own prefix (m, p, g), so a link can only point to the right category:
+     a directorid must be an existing id that starts with "p" (a person).
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+  <!-- Simple types -->
+
+  <xs:simpleType name="EmptyStringType">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- identifiers (primary keys) -->
+  <xs:simpleType name="MovieIdType">
+    <xs:restriction base="xs:ID"><xs:pattern value="m[0-9]+"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="PersonIdType">
+    <xs:restriction base="xs:ID"><xs:pattern value="p[0-9]+"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="GenreIdType">
+    <xs:restriction base="xs:ID"><xs:pattern value="g[0-9]+"/></xs:restriction>
+  </xs:simpleType>
+
+  <!-- references (foreign keys) -->
+  <xs:simpleType name="PersonRefType">
+    <xs:restriction base="xs:IDREF"><xs:pattern value="p[0-9]+"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="GenreRefType">
+    <xs:restriction base="xs:IDREF"><xs:pattern value="g[0-9]+"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="PersonRefListType">
+    <xs:list itemType="PersonRefType"/>
+  </xs:simpleType>
+  <xs:simpleType name="PersonRefsType">
+    <xs:restriction base="PersonRefListType"><xs:minLength value="1"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="GenreRefListType">
+    <xs:list itemType="GenreRefType"/>
+  </xs:simpleType>
+  <xs:simpleType name="GenreRefsType">
+    <xs:restriction base="GenreRefListType"><xs:minLength value="1"/></xs:restriction>
+  </xs:simpleType>
+
+  <!-- text -->
+  <xs:simpleType name="TitleType">
+    <xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="200"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="NameType">
+    <xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="100"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="DescriptionType">
+    <xs:restriction base="xs:string"><xs:maxLength value="1000"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="KindType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="movie"/>
+      <xs:enumeration value="series"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- numbers & dates -->
+  <xs:simpleType name="YearType">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="1888"/><xs:maxInclusive value="2100"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="RuntimeType">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="1"/><xs:maxInclusive value="600"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="RatingType">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0"/><xs:maxInclusive value="10"/><xs:fractionDigits value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="OptionalRatingType">
+    <xs:union memberTypes="RatingType EmptyStringType"/>
+  </xs:simpleType>
+  <xs:simpleType name="MoneyType">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0"/><xs:totalDigits value="15"/><xs:fractionDigits value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ProfitType">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="15"/><xs:fractionDigits value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="OptionalProfitType">
+    <xs:union memberTypes="ProfitType EmptyStringType"/>
+  </xs:simpleType>
+  <xs:simpleType name="SeasonsBaseType">
+    <xs:restriction base="xs:positiveInteger"><xs:maxInclusive value="100"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="SeasonsType">
+    <xs:union memberTypes="SeasonsBaseType EmptyStringType"/>
+  </xs:simpleType>
+  <xs:simpleType name="OptionalDateType">
+    <xs:union memberTypes="xs:date EmptyStringType"/>
+  </xs:simpleType>
+  <xs:simpleType name="OptionalNonNegativeIntType">
+    <xs:union memberTypes="xs:nonNegativeInteger EmptyStringType"/>
+  </xs:simpleType>
+  <xs:simpleType name="OptionalDecimalType">
+    <xs:union memberTypes="xs:decimal EmptyStringType"/>
+  </xs:simpleType>
+
+  <!-- GLOBAL ELEMENTS (simple content) -->
+  <xs:element name="title"         type="TitleType"/>
+  <xs:element name="year"          type="YearType"/>
+  <xs:element name="releasedate"   type="xs:date"/>
+  <xs:element name="runtime"       type="RuntimeType"/>
+  <xs:element name="rating"        type="RatingType"/>
+  <xs:element name="budget"        type="MoneyType"/>
+  <xs:element name="boxoffice"     type="MoneyType"/>
+  <xs:element name="profit"        type="OptionalProfitType"/>
+  <xs:element name="age"           type="OptionalNonNegativeIntType"/>
+  <xs:element name="runtimehours"  type="OptionalDecimalType"/>
+  <xs:element name="profitpercent" type="OptionalDecimalType"/>
+  <xs:element name="kind"          type="KindType"/>
+  <xs:element name="seasons"       type="SeasonsType"/>
+  <xs:element name="description"   type="DescriptionType"/>
+  <xs:element name="watched"       type="xs:boolean"/>
+  <xs:element name="watchdate"     type="OptionalDateType"/>
+  <xs:element name="myrating"      type="OptionalRatingType"/>
+  <xs:element name="name"          type="NameType"/>
+  <xs:element name="birthdate"     type="xs:date"/>
+  <xs:element name="alive"         type="xs:boolean"/>
+  <xs:element name="deathdate"     type="OptionalDateType"/>
+  <xs:element name="moviecount"    type="OptionalNonNegativeIntType"/>
+
+  <!-- COMPLEX TYPES + GLOBAL ELEMENTS -->
+
+  <!-- one movie -->
+  <xs:complexType name="MovieType">
+    <xs:sequence>
+      <xs:element ref="title"/>
+      <xs:element ref="year"/>
+      <xs:element ref="releasedate"/>
+      <xs:element ref="runtime"/>
+      <xs:element ref="rating"/>
+      <xs:element ref="budget"/>
+      <xs:element ref="boxoffice"/>
+      <xs:element ref="profit"        minOccurs="0"/>
+      <xs:element ref="age"           minOccurs="0"/>
+      <xs:element ref="runtimehours"  minOccurs="0"/>
+      <xs:element ref="profitpercent" minOccurs="0"/>
+      <xs:element ref="kind"/>
+      <xs:element ref="seasons"       minOccurs="0"/>
+      <xs:element ref="description"/>
+      <xs:element ref="watched"/>
+      <xs:element ref="watchdate"     minOccurs="0"/>
+      <xs:element ref="myrating"      minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id"         type="MovieIdType"    use="required"/>
+    <xs:attribute name="directorid" type="PersonRefType"  use="required"/>
+    <xs:attribute name="actorids"   type="PersonRefsType" use="required"/>
+    <xs:attribute name="genreids"   type="GenreRefsType"  use="required"/>
+  </xs:complexType>
+  <xs:element name="movie" type="MovieType"/>
+
+  <!-- one person -->
+  <xs:complexType name="PersonType">
+    <xs:sequence>
+      <xs:element ref="name"/>
+      <xs:element ref="birthdate"/>
+      <xs:element ref="alive"/>
+      <xs:element ref="deathdate"  minOccurs="0"/>
+      <xs:element ref="age"        minOccurs="0"/>
+      <xs:element ref="moviecount" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="PersonIdType" use="required"/>
+  </xs:complexType>
+  <xs:element name="person" type="PersonType"/>
+
+  <!-- one genre -->
+  <xs:complexType name="GenreType">
+    <xs:sequence>
+      <xs:element ref="name"/>
+      <xs:element ref="moviecount" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="GenreIdType" use="required"/>
+  </xs:complexType>
+  <xs:element name="genre" type="GenreType"/>
+
+  <!-- the three collections -->
+  <xs:complexType name="MoviesType">
+    <xs:sequence><xs:element ref="movie" minOccurs="1" maxOccurs="unbounded"/></xs:sequence>
+  </xs:complexType>
+  <xs:element name="movies" type="MoviesType"/>
+
+  <xs:complexType name="PeopleType">
+    <xs:sequence><xs:element ref="person" minOccurs="1" maxOccurs="unbounded"/></xs:sequence>
+  </xs:complexType>
+  <xs:element name="people" type="PeopleType"/>
+
+  <xs:complexType name="GenresType">
+    <xs:sequence><xs:element ref="genre" minOccurs="1" maxOccurs="unbounded"/></xs:sequence>
+  </xs:complexType>
+  <xs:element name="genres" type="GenresType"/>
+
+  <!-- the whole database -->
+  <xs:complexType name="MovieDbType">
+    <xs:sequence>
+      <xs:element ref="movies"/>
+      <xs:element ref="people"/>
+      <xs:element ref="genres"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="moviedb" type="MovieDbType"/>
+
+</xs:schema>
